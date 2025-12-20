@@ -289,7 +289,6 @@ describe('Pellet Property-Based Tests', () => {
     it('reset restores all pellets to initial state', () => {
       fc.assert(
         fc.property(mazeDataArb, (mazeData: MazeData) => {
-          const { Maze } = require('./Maze');
           const maze = new Maze(mazeData);
           
           const initialPellets = maze.pelletsRemaining;

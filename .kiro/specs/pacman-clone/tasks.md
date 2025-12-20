@@ -51,25 +51,25 @@
   - Add validation for maze connectivity (BFS/DFS)
   - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ]* 3.3 Write property test for Maze-Erreichbarkeit
+- [x]* 3.3 Write property test for Maze-Erreichbarkeit
   - **Property 15: Maze-Erreichbarkeit**
   - **Validates: Requirements 6.2**
 
-- [ ]* 3.4 Write property test for Ghost-House-Existenz
+- [x]* 3.4 Write property test for Ghost-House-Existenz
   - **Property 16: Ghost-House-Existenz**
   - **Validates: Requirements 6.3**
 
-- [ ]* 3.5 Write property test for Tunnel-Paar-Existenz
+- [x]* 3.5 Write property test for Tunnel-Paar-Existenz
   - **Property 17: Tunnel-Paar-Existenz**
   - **Validates: Requirements 6.4**
 
-- [ ] 3.6 Implement Pellet management in Maze
+- [x] 3.6 Implement Pellet management in Maze
   - Track pellet positions and states
   - Implement pellet collection logic
   - Add pellet count tracking for level completion
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ]* 3.7 Write property test for Pellet-Platzierung-Konsistenz
+- [x]* 3.7 Write property test for Pellet-Platzierung-Konsistenz
   - **Property 7: Pellet-Platzierung-Konsistenz**
   - **Validates: Requirements 2.4**
 
