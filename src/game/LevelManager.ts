@@ -1,6 +1,6 @@
 import type { LevelConfig, MazeData, MazeLayout } from '../types';
 import { GameState } from '../types';
-import { getMazeLayout, MAZE_LAYOUTS } from '../maze/layouts';
+import { getMazeLayout } from '../maze/layouts';
 import { loadMazeLayout } from '../maze/maze-loader';
 import { Maze } from '../maze/Maze';
 

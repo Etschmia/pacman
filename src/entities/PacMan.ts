@@ -1,7 +1,7 @@
-import { Direction, CellType } from '../types';
+import { Direction } from '../types';
 import type { GridPosition, PixelPosition, IMovable } from '../types';
 import { Maze } from '../maze';
-import { CELL_SIZE, gridToPixel, pixelToGrid, positionsEqual } from '../maze/maze-utils';
+import { CELL_SIZE, gridToPixel, positionsEqual } from '../maze/maze-utils';
 
 /**
  * Pac-Man rendering constants

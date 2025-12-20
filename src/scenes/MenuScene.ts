@@ -7,7 +7,6 @@ import { loadHighscoreData } from '../persistence/storage';
  */
 export class MenuScene extends Phaser.Scene {
   private highscore: number = 0;
-  private startButton!: Phaser.GameObjects.Container;
   private blinkTimer: number = 0;
   private pressStartText!: Phaser.GameObjects.Text;
 
@@ -92,7 +91,7 @@ export class MenuScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
       onUpdate: (tween) => {
-        const mouthAngle = tween.getValue();
+        const mouthAngle = tween.getValue() ?? 0;
         graphics.clear();
         
         // Glow

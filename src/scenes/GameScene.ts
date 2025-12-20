@@ -11,6 +11,7 @@ import { InputManager } from '../input/InputManager';
 import { CELL_SIZE } from '../maze/maze-utils';
 import { ScoreDisplay, LivesDisplay, LevelIndicator, FrightenedTimer } from '../ui';
 import { getAudioManager, SoundType } from '../audio';
+import { getResponsiveManager } from '../responsive';
 
 /**
  * GameScene is the main gameplay scene handling:
@@ -55,6 +56,11 @@ export class GameScene extends Phaser.Scene {
   private isPaused: boolean = false;
   private pauseOverlay!: Phaser.GameObjects.Container;
 
+  // Performance tracking
+  private fpsHistory: number[] = [];
+  private lastFpsCheck: number = 0;
+  private readonly FPS_CHECK_INTERVAL = 1000;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -75,12 +81,19 @@ export class GameScene extends Phaser.Scene {
 
     // Fade in
     this.cameras.main.fadeIn(300, 0, 0, 0);
+
+    // Initialize FPS tracking
+    this.fpsHistory = [];
+    this.lastFpsCheck = 0;
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
     if (this.isPaused) {
       return;
     }
+
+    // Track FPS for performance optimization
+    this.trackFps(time);
 
     switch (this.gameState) {
       case GameState.READY:
@@ -104,6 +117,32 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.renderGame();
+  }
+
+  /**
+   * Track FPS and enable performance mode if needed
+   */
+  private trackFps(time: number): void {
+    if (time - this.lastFpsCheck >= this.FPS_CHECK_INTERVAL) {
+      const currentFps = this.game.loop.actualFps;
+      this.fpsHistory.push(currentFps);
+      
+      // Keep only last 5 samples
+      if (this.fpsHistory.length > 5) {
+        this.fpsHistory.shift();
+      }
+
+      // Calculate average FPS
+      const avgFps = this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
+      
+      // Enable performance mode if FPS drops below 30
+      const responsiveManager = getResponsiveManager();
+      if (responsiveManager.detectLowPerformance(avgFps, 30)) {
+        responsiveManager.setPerformanceMode(true);
+      }
+
+      this.lastFpsCheck = time;
+    }
   }
 
   private initializeManagers(): void {
@@ -248,6 +287,12 @@ export class GameScene extends Phaser.Scene {
         this.pacman.move(direction);
       }
     });
+
+    // Set up touch input if available
+    const responsiveManager = getResponsiveManager();
+    if (responsiveManager.isTouchEnabled()) {
+      this.inputManager.setupTouchInput();
+    }
 
     // Pause input
     this.input.keyboard?.on('keydown-ESC', this.togglePause, this);

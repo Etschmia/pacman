@@ -2,7 +2,6 @@ import { loadHighscoreData, saveHighscoreData } from '../persistence/storage';
 import { toggleSound } from '../persistence/serialization';
 import type { HighscoreData } from '../types';
 import { 
-  getSoundGenerator, 
   createPelletSound, 
   createPowerPelletSound, 
   createGhostEatSound, 
