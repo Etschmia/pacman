@@ -75,43 +75,43 @@
 
 ## 4. Input System
 
-- [ ] 4.1 Implement InputManager for keyboard input
+- [x] 4.1 Implement InputManager for keyboard input
   - Handle arrow keys and WASD
   - Implement input buffering for queued direction changes
   - Emit direction change events
   - _Requirements: 1.1, 1.3_
 
-- [ ] 4.2 Implement touch/swipe input handling
+- [x] 4.2 Implement touch/swipe input handling
   - Detect swipe gestures with minimum distance threshold (30px)
   - Convert swipe direction to game direction
   - Handle diagonal swipes (dominant axis)
   - _Requirements: 1.2, 11.2_
 
-- [ ]* 4.3 Write property test for Input-Richtungs-Mapping
+- [x]* 4.3 Write property test for Input-Richtungs-Mapping
   - **Property 1: Input-Richtungs-Mapping**
   - **Validates: Requirements 1.1, 1.2**
 
-- [ ]* 4.4 Write property test for Input-Buffering-Konsistenz
+- [x]* 4.4 Write property test for Input-Buffering-Konsistenz
   - **Property 2: Input-Buffering-Konsistenz**
   - **Validates: Requirements 1.3**
 
 ## 5. Pac-Man Entity
 
-- [ ] 5.1 Implement PacMan class with movement logic
+- [x] 5.1 Implement PacMan class with movement logic
   - Create PacMan entity with position and direction
   - Implement grid-based movement with wall collision
   - Add tunnel teleportation logic
   - _Requirements: 1.4, 1.5_
 
-- [ ]* 5.2 Write property test for Wand-Kollisions-Integrität
+- [x]* 5.2 Write property test for Wand-Kollisions-Integrität
   - **Property 3: Wand-Kollisions-Integrität**
   - **Validates: Requirements 1.4**
 
-- [ ]* 5.3 Write property test for Tunnel-Teleportation-Symmetrie
+- [x]* 5.3 Write property test for Tunnel-Teleportation-Symmetrie
   - **Property 4: Tunnel-Teleportation-Symmetrie**
   - **Validates: Requirements 1.5**
 
-- [ ] 5.4 Implement PacMan rendering with mouth animation
+- [x] 5.4 Implement PacMan rendering with mouth animation
   - Create smooth mouth animation (open/close cycle)
   - Rotate sprite based on movement direction
   - Use Canvas primitives for neon-style rendering
