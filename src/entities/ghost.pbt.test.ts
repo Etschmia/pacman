@@ -654,4 +654,301 @@ describe('Ghost Property-Based Tests', () => {
       );
     });
   });
+
+  /**
+   * **Feature: pacman-clone, Property 10: Ghost-Eating-Zustandsübergang**
+   * **Validates: Requirements 3.5, 3.6**
+   * 
+   * *Für jeden* Geist im FRIGHTENED-Zustand, wenn Pac-Man ihn berührt, soll der Geist 
+   * in den EATEN-Zustand wechseln und zum Ghost House navigieren.
+   */
+  describe('Property 10: Ghost-Eating-Zustandsübergang', () => {
+    /**
+     * Generator for frightened duration (realistic game values)
+     */
+    const frightenedDurationArb = fc.integer({ min: 1000, max: 10000 });
+
+    it('frightened ghost should transition to EATEN when onEaten is called', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          frightenedDurationArb,
+          (ghostType, ghostPos, duration) => {
+            const maze = createTargetingTestMaze();
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in FRIGHTENED mode
+            ghost.setMode(GhostMode.SCATTER);
+            ghost.enterFrightenedMode(duration);
+            
+            // Verify ghost is frightened
+            if (ghost.mode !== GhostMode.FRIGHTENED) {
+              return false;
+            }
+            
+            // Simulate Pac-Man eating the ghost
+            ghost.onEaten();
+            
+            // Ghost should now be in EATEN mode
+            return ghost.mode === GhostMode.EATEN;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('eaten ghost should target ghost house center', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          pacmanPositionArb,
+          directionArb,
+          frightenedDurationArb,
+          (ghostType, ghostPos, pacmanPos, pacmanDirection, duration) => {
+            const maze = createTargetingTestMaze();
+            
+            const pacman = new PacMan({ maze, speed: 80 });
+            (pacman as any)._gridPosition = { ...pacmanPos };
+            pacman.move(pacmanDirection);
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in FRIGHTENED mode and then eat it
+            ghost.setMode(GhostMode.SCATTER);
+            ghost.enterFrightenedMode(duration);
+            ghost.onEaten();
+            
+            // Get target - should be ghost house center
+            const target = ghost.getTarget(pacman);
+            const ghostHouseCenter = maze.ghostHouseCenter;
+            
+            return target.x === ghostHouseCenter.x && target.y === ghostHouseCenter.y;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('non-frightened ghost should NOT transition to EATEN when onEaten is called', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          fc.constantFrom(GhostMode.CHASE, GhostMode.SCATTER),
+          (ghostType, ghostPos, initialMode) => {
+            const maze = createTargetingTestMaze();
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in non-frightened mode
+            ghost.setMode(initialMode);
+            
+            // Try to eat the ghost (should have no effect)
+            ghost.onEaten();
+            
+            // Ghost should still be in original mode
+            return ghost.mode === initialMode;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('eaten ghost should clear frightened timer', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          frightenedDurationArb,
+          (ghostType, ghostPos, duration) => {
+            const maze = createTargetingTestMaze();
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in FRIGHTENED mode
+            ghost.setMode(GhostMode.SCATTER);
+            ghost.enterFrightenedMode(duration);
+            
+            // Verify frightened timer is set
+            if (ghost.getFrightenedTimeRemaining() !== duration) {
+              return false;
+            }
+            
+            // Eat the ghost
+            ghost.onEaten();
+            
+            // Frightened timer should be cleared
+            return ghost.getFrightenedTimeRemaining() === 0;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('eaten ghost should NOT be affected by new frightened mode broadcasts', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          frightenedDurationArb,
+          frightenedDurationArb,
+          (ghostType, ghostPos, duration1, duration2) => {
+            const maze = createTargetingTestMaze();
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in FRIGHTENED mode and eat it
+            ghost.setMode(GhostMode.SCATTER);
+            ghost.enterFrightenedMode(duration1);
+            ghost.onEaten();
+            
+            // Try to frighten the eaten ghost again
+            ghost.enterFrightenedMode(duration2);
+            
+            // Ghost should still be EATEN
+            return ghost.mode === GhostMode.EATEN;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('eaten ghost should have double speed modifier', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          frightenedDurationArb,
+          (ghostType, ghostPos, duration) => {
+            const maze = createTargetingTestMaze();
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in FRIGHTENED mode and eat it
+            ghost.setMode(GhostMode.SCATTER);
+            ghost.enterFrightenedMode(duration);
+            ghost.onEaten();
+            
+            // Access private method via any cast to verify speed modifier
+            const speedModifier = (ghost as any).getSpeedModifier();
+            
+            // Eaten ghosts should have 2x speed
+            return speedModifier === 2.0;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('all ghost types should follow same eating state transition', () => {
+      fc.assert(
+        fc.property(
+          ghostPositionArb,
+          frightenedDurationArb,
+          (ghostPos, duration) => {
+            const maze = createTargetingTestMaze();
+            const ghostTypes = [GhostType.BLINKY, GhostType.PINKY, GhostType.INKY, GhostType.CLYDE];
+            
+            const results = ghostTypes.map(ghostType => {
+              const ghost = new Ghost({
+                type: ghostType,
+                maze,
+                spawnPosition: ghostPos,
+              });
+              (ghost as any)._gridPosition = { ...ghostPos };
+              
+              // Put ghost in FRIGHTENED mode
+              ghost.setMode(GhostMode.SCATTER);
+              ghost.enterFrightenedMode(duration);
+              
+              // Eat the ghost
+              ghost.onEaten();
+              
+              return {
+                mode: ghost.mode,
+                frightenedTime: ghost.getFrightenedTimeRemaining(),
+                isEaten: ghost.isEaten(),
+              };
+            });
+            
+            // All ghosts should have same state after being eaten
+            return results.every(r => 
+              r.mode === GhostMode.EATEN && 
+              r.frightenedTime === 0 && 
+              r.isEaten === true
+            );
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+
+    it('eating ghost should be idempotent - multiple onEaten calls have same effect', () => {
+      fc.assert(
+        fc.property(
+          ghostTypeArb,
+          ghostPositionArb,
+          frightenedDurationArb,
+          fc.integer({ min: 2, max: 5 }),
+          (ghostType, ghostPos, duration, numCalls) => {
+            const maze = createTargetingTestMaze();
+            
+            const ghost = new Ghost({
+              type: ghostType,
+              maze,
+              spawnPosition: ghostPos,
+            });
+            (ghost as any)._gridPosition = { ...ghostPos };
+            
+            // Put ghost in FRIGHTENED mode
+            ghost.setMode(GhostMode.SCATTER);
+            ghost.enterFrightenedMode(duration);
+            
+            // Call onEaten multiple times
+            for (let i = 0; i < numCalls; i++) {
+              ghost.onEaten();
+            }
+            
+            // Ghost should be in EATEN mode with cleared timer
+            return ghost.mode === GhostMode.EATEN && 
+                   ghost.getFrightenedTimeRemaining() === 0;
+          }
+        ),
+        PBT_CONFIG
+      );
+    });
+  });
 });

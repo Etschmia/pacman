@@ -152,63 +152,63 @@
   - **Property 9: Frightened-Mode-Broadcast**
   - **Validates: Requirements 3.4**
 
-- [ ]* 6.7 Write property test for Ghost-Eating-Zustandsübergang
+- [x]* 6.7 Write property test for Ghost-Eating-Zustandsübergang
   - **Property 10: Ghost-Eating-Zustandsübergang**
   - **Validates: Requirements 3.5, 3.6**
 
-- [ ] 6.8 Checkpoint
+- [x] 6.8 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 ## 7. Score and Lives System
 
-- [ ] 7.1 Implement ScoreManager
+- [x] 7.1 Implement ScoreManager
   - Track current score and highscore
   - Calculate pellet points (10 for normal, 50 for power)
   - Calculate ghost eating bonus (200, 400, 800, 1600 chain)
   - Persist highscore to LocalStorage
   - _Requirements: 2.1, 2.2, 8.1, 8.3, 8.4_
 
-- [ ]* 7.2 Write property test for Score-Berechnung-Korrektheit
+- [x]* 7.2 Write property test for Score-Berechnung-Korrektheit
   - **Property 5: Score-Berechnung-Korrektheit**
   - **Validates: Requirements 2.1, 2.2**
 
-- [ ] 7.3 Implement lives system
+- [x] 7.3 Implement lives system
   - Initialize with 3 lives
   - Decrement on ghost collision (normal mode)
   - Reset positions on death with remaining lives
   - _Requirements: 4.1, 4.3, 4.4_
 
-- [ ]* 7.4 Write property test for Pac-Man-Tod-Lebensabzug
+- [x]* 7.4 Write property test for Pac-Man-Tod-Lebensabzug
   - **Property 11: Pac-Man-Tod-Lebensabzug**
   - **Validates: Requirements 4.1**
 
-- [ ]* 7.5 Write property test for Position-Reset-Nach-Tod
+- [x]* 7.5 Write property test for Position-Reset-Nach-Tod
   - **Property 12: Position-Reset-Nach-Tod**
   - **Validates: Requirements 4.3**
 
-- [ ]* 7.6 Write property test for Game-Over-Bedingung
+- [x]* 7.6 Write property test for Game-Over-Bedingung
   - **Property 13: Game-Over-Bedingung**
   - **Validates: Requirements 4.2**
 
 ## 8. Level System
 
-- [ ] 8.1 Implement LevelManager with level configurations
+- [x] 8.1 Implement LevelManager with level configurations
   - Define 8 level configurations with increasing difficulty
   - Implement ghost speed scaling per level
   - Implement frightened duration reduction per level
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ]* 8.2 Write property test for Schwierigkeits-Monotonie
+- [x]* 8.2 Write property test for Schwierigkeits-Monotonie
   - **Property 14: Schwierigkeits-Monotonie**
   - **Validates: Requirements 5.2, 5.3**
 
-- [ ] 8.3 Implement level completion and progression
+- [x] 8.3 Implement level completion and progression
   - Detect when all pellets collected
   - Transition to next level with new maze
   - Handle win condition at level 8
   - _Requirements: 2.3, 5.1, 5.4_
 
-- [ ]* 8.4 Write property test for Level-Completion-Invariante
+- [x]* 8.4 Write property test for Level-Completion-Invariante
   - **Property 6: Level-Completion-Invariante**
   - **Validates: Requirements 2.3**
 
