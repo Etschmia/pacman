@@ -119,7 +119,7 @@
 
 ## 6. Ghost System
 
-- [ ] 6.1 Implement Ghost base class with state machine
+- [x] 6.1 Implement Ghost base class with state machine
   - Create Ghost entity with GhostMode state machine
   - Implement mode transitions (CHASE, SCATTER, FRIGHTENED, EATEN, HOUSE)
   - Add ghost house respawn logic
