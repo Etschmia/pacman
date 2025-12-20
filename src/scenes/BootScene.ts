@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getAudioManager } from '../audio';
 
 /**
  * BootScene handles initial asset loading and displays loading progress.
@@ -22,6 +23,10 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     // Generate programmatic graphics
     this.generateGraphics();
+    
+    // Initialize AudioManager with this scene
+    const audioManager = getAudioManager();
+    audioManager.initialize(this);
     
     // Transition to MenuScene
     this.scene.start('MenuScene');
@@ -78,16 +83,19 @@ export class BootScene extends Phaser.Scene {
   }
 
   private loadAssets(): void {
-    // Audio assets will be loaded here when AudioManager is implemented
-    // For now, we simulate loading with a small delay
-    
-    // Create placeholder audio data (silent audio)
-    // This ensures the loading bar shows progress
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const buffer = audioContext.createBuffer(1, 1, 22050);
-    
-    // We'll add actual audio loading in Task 11
-    // For now, just ensure the scene transitions properly
+    // Load audio assets
+    // Note: Audio files need to be created/added to the project
+    // Using try-catch to handle missing audio files gracefully
+    try {
+      this.load.audio('pellet', 'assets/audio/pellet.mp3');
+      this.load.audio('powerPellet', 'assets/audio/power-pellet.mp3');
+      this.load.audio('ghostEat', 'assets/audio/ghost-eat.mp3');
+      this.load.audio('death', 'assets/audio/death.mp3');
+      this.load.audio('levelComplete', 'assets/audio/level-complete.mp3');
+    } catch {
+      // Audio files not found, game will run without sound
+      console.warn('Audio assets not found, running without sound');
+    }
   }
 
   private generateGraphics(): void {

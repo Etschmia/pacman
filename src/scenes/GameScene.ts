@@ -10,6 +10,7 @@ import { LevelManager } from '../game/LevelManager';
 import { InputManager } from '../input/InputManager';
 import { CELL_SIZE } from '../maze/maze-utils';
 import { ScoreDisplay, LivesDisplay, LevelIndicator, FrightenedTimer } from '../ui';
+import { getAudioManager, SoundType } from '../audio';
 
 /**
  * GameScene is the main gameplay scene handling:
@@ -341,14 +342,17 @@ export class GameScene extends Phaser.Scene {
     if (this.maze.hasPellet(pacmanPos)) {
       const pelletType = this.maze.collectPellet(pacmanPos);
       const pixelPos = this.pacman.pixelPosition;
+      const audioManager = getAudioManager();
 
       if (pelletType === CellType.POWER_PELLET) {
         this.scoreManager.collectPowerPellet();
         this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, POWER_PELLET_POINTS);
         this.activateFrightenedMode();
+        audioManager.play(SoundType.POWER_PELLET);
       } else if (pelletType === CellType.PELLET) {
         this.scoreManager.collectPellet();
         this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, PELLET_POINTS);
+        audioManager.play(SoundType.PELLET);
       }
     }
   }
@@ -363,6 +367,7 @@ export class GameScene extends Phaser.Scene {
 
   private checkGhostCollisions(): void {
     const pacmanPos = this.pacman.gridPosition;
+    const audioManager = getAudioManager();
 
     for (const ghost of this.ghosts) {
       if (this.isColliding(pacmanPos, ghost.gridPosition)) {
@@ -372,6 +377,7 @@ export class GameScene extends Phaser.Scene {
           const points = this.scoreManager.eatGhost();
           const pixelPos = ghost.pixelPosition;
           this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, points);
+          audioManager.play(SoundType.GHOST_EAT);
         } else if (!ghost.isEaten() && !ghost.isInHouse()) {
           // Pac-Man dies
           this.handlePacManDeath();
@@ -392,6 +398,7 @@ export class GameScene extends Phaser.Scene {
     this.livesDisplay.animateLifeLoss();
     this.updateLivesDisplay();
     this.frightenedTimer.stop();
+    getAudioManager().play(SoundType.DEATH);
   }
 
   private resetPositions(): void {
@@ -406,6 +413,7 @@ export class GameScene extends Phaser.Scene {
       this.levelCompleteTimer = 0;
       this.readyText.setText('LEVEL COMPLETE!');
       this.readyText.setVisible(true);
+      getAudioManager().play(SoundType.LEVEL_COMPLETE);
     }
   }
 

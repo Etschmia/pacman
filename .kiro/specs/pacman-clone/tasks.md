@@ -281,17 +281,17 @@
 
 ## 11. Audio System
 
-- [ ] 11.1 Implement AudioManager
+- [x] 11.1 Implement AudioManager
   - Load and manage sound effects
   - Implement sound pool for frequent sounds
   - Handle mute toggle with persistence
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ]* 11.2 Write property test for Sound-Toggle-Persistenz
+- [x]* 11.2 Write property test for Sound-Toggle-Persistenz
   - **Property 21: Sound-Toggle-Persistenz**
   - **Validates: Requirements 10.6**
 
-- [ ] 11.3 Integrate audio triggers
+- [x] 11.3 Integrate audio triggers
   - Pellet collection sound
   - Power pellet sound
   - Ghost eating sound
