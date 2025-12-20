@@ -214,47 +214,47 @@
 
 ## 9. Game Scenes
 
-- [ ] 9.1 Implement BootScene for asset loading
+- [x] 9.1 Implement BootScene for asset loading
   - Load audio assets
   - Generate programmatic graphics
   - Show loading progress
   - _Requirements: 7.1_
 
-- [ ] 9.2 Implement MenuScene with start screen
+- [x] 9.2 Implement MenuScene with start screen
   - Display game title with neon styling
   - Show start button and highscore
   - Handle start game input
   - _Requirements: 9.1, 8.4_
 
-- [ ] 9.3 Implement GameScene as main gameplay scene
+- [x] 9.3 Implement GameScene as main gameplay scene
   - Initialize maze, Pac-Man, and ghosts
   - Handle game loop and collision detection
   - Manage game state transitions
   - _Requirements: 3.1, 4.1, 4.2, 4.3_
 
-- [ ] 9.4 Implement pause functionality
+- [x] 9.4 Implement pause functionality
   - Handle Escape key and pause button
   - Show pause overlay with resume/quit options
   - Freeze game state while paused
   - _Requirements: 9.2, 9.3_
 
-- [ ]* 9.5 Write property test for Pause-Toggle-Idempotenz
+- [x]* 9.5 Write property test for Pause-Toggle-Idempotenz
   - **Property 20: Pause-Toggle-Idempotenz**
   - **Validates: Requirements 9.2**
 
-- [ ] 9.6 Implement GameOverScene
+- [x] 9.6 Implement GameOverScene
   - Display final score
   - Show restart and menu options
   - Update highscore if applicable
   - _Requirements: 4.2, 9.4_
 
-- [ ] 9.7 Implement WinScene for level 8 completion
+- [x] 9.7 Implement WinScene for level 8 completion
   - Display congratulations message
   - Show final score
   - Offer restart option
   - _Requirements: 5.4, 9.5_
 
-- [ ] 9.8 Checkpoint
+- [x] 9.8 Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 ## 10. UI Components
