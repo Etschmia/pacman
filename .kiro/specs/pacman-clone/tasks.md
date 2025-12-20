@@ -23,29 +23,29 @@
 
 ## 2. Data Serialization and Persistence
 
-- [ ] 2.1 Implement GameSaveData serialization module
+- [x] 2.1 Implement GameSaveData serialization module
   - Create serialize/deserialize functions for HighscoreData
   - Implement JSON schema validation
   - Add fallback to default values on invalid data
   - _Requirements: 12.1, 12.2, 12.3, 12.4_
 
-- [ ]* 2.2 Write property test for Highscore-Round-Trip
+- [x]* 2.2 Write property test for Highscore-Round-Trip
   - **Property 18: Highscore-Round-Trip**
   - **Validates: Requirements 12.1, 12.2, 12.4**
 
-- [ ]* 2.3 Write property test for Schema-Validierung-Fallback
+- [x]* 2.3 Write property test for Schema-Validierung-Fallback
   - **Property 19: Schema-Validierung-Fallback**
   - **Validates: Requirements 12.3**
 
 ## 3. Maze System
 
-- [ ] 3.1 Implement Maze data structures and grid utilities
+- [x] 3.1 Implement Maze data structures and grid utilities
   - Create Maze class with grid management
   - Implement grid-to-pixel and pixel-to-grid coordinate conversion
   - Add cell type checking methods
   - _Requirements: 6.1, 6.2_
 
-- [ ] 3.2 Implement maze layout loading and validation
+- [x] 3.2 Implement maze layout loading and validation
   - Create at least 5 predefined maze layouts as JSON
   - Implement maze selection logic
   - Add validation for maze connectivity (BFS/DFS)
