@@ -125,30 +125,30 @@
   - Add ghost house respawn logic
   - _Requirements: 3.1, 3.4, 3.5, 3.6_
 
-- [ ] 6.2 Implement ghost targeting algorithms
+- [x] 6.2 Implement ghost targeting algorithms
   - Blinky: Direct chase (target = Pac-Man position)
   - Pinky: Ambush (target = 4 tiles ahead of Pac-Man)
   - Inky: Complex (uses Blinky position + Pac-Man)
   - Clyde: Shy (chase when far, scatter when close)
   - _Requirements: 3.2, 3.3_
 
-- [ ]* 6.3 Write property test for Ghost-Targeting-Determinismus
+- [x]* 6.3 Write property test for Ghost-Targeting-Determinismus
   - **Property 8: Ghost-Targeting-Determinismus**
   - **Validates: Requirements 3.2, 3.3**
 
-- [ ] 6.4 Implement ghost movement and pathfinding
+- [x] 6.4 Implement ghost movement and pathfinding
   - Simple direction selection at intersections
   - Reverse direction on mode change
   - Speed adjustments based on mode and level
   - _Requirements: 3.2, 3.3, 3.4_
 
-- [ ] 6.5 Implement ghost rendering with mode-based visuals
+- [x] 6.5 Implement ghost rendering with mode-based visuals
   - Normal mode: Colored ghost with eyes
   - Frightened mode: Blue ghost, blinking near end
   - Eaten mode: Eyes only returning to ghost house
   - _Requirements: 7.3, 7.4, 7.5_
 
-- [ ]* 6.6 Write property test for Frightened-Mode-Broadcast
+- [x]* 6.6 Write property test for Frightened-Mode-Broadcast
   - **Property 9: Frightened-Mode-Broadcast**
   - **Validates: Requirements 3.4**
 

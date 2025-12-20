@@ -320,3 +320,295 @@ describe('Ghost', () => {
     });
   });
 });
+
+// Import PacMan for targeting tests
+import { PacMan } from './PacMan';
+
+describe('Ghost Targeting Algorithms', () => {
+  let maze: Maze;
+  let pacman: PacMan;
+
+  // Larger maze for targeting tests
+  const createTargetingMazeData = (): MazeData => ({
+    width: 20,
+    height: 20,
+    grid: Array(20).fill(null).map((_, y) =>
+      Array(20).fill(null).map((_, x) => {
+        // Walls on edges
+        if (x === 0 || x === 19 || y === 0 || y === 19) return CellType.WALL;
+        // Ghost house in center
+        if (x >= 8 && x <= 11 && y >= 8 && y <= 11) {
+          if (y === 8 && x === 9) return CellType.GHOST_DOOR;
+          return CellType.GHOST_HOUSE;
+        }
+        return CellType.PATH;
+      })
+    ),
+    pacmanSpawn: { x: 10, y: 15 },
+    ghostSpawns: [
+      { x: 9, y: 9 },   // Blinky
+      { x: 10, y: 9 },  // Pinky
+      { x: 9, y: 10 },  // Inky
+      { x: 10, y: 10 }, // Clyde
+    ],
+    ghostHouseCenter: { x: 9, y: 9 },
+    tunnels: [],
+  });
+
+  beforeEach(() => {
+    maze = new Maze(createTargetingMazeData());
+    pacman = new PacMan({ maze, speed: 80 });
+  });
+
+  describe('Blinky targeting (direct chase)', () => {
+    it('should target Pac-Man directly in CHASE mode', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 9, y: 9 },
+      });
+      blinky.setMode(GhostMode.CHASE);
+      
+      const target = blinky.getTarget(pacman);
+      expect(target).toEqual(pacman.gridPosition);
+    });
+
+    it('should target scatter corner in SCATTER mode', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 9, y: 9 },
+      });
+      blinky.setMode(GhostMode.SCATTER);
+      
+      const target = blinky.getTarget(pacman);
+      expect(target).toEqual(blinky.getScatterTarget());
+    });
+  });
+
+  describe('Pinky targeting (ambush)', () => {
+    it('should target 4 tiles ahead of Pac-Man in CHASE mode', () => {
+      const pinky = new Ghost({
+        type: GhostType.PINKY,
+        maze,
+        spawnPosition: { x: 10, y: 9 },
+      });
+      pinky.setMode(GhostMode.CHASE);
+      
+      // Move Pac-Man right
+      pacman.move(Direction.RIGHT);
+      
+      const target = pinky.getTarget(pacman);
+      const expectedTarget = pacman.getPositionAhead(4);
+      expect(target).toEqual(expectedTarget);
+    });
+
+    it('should target scatter corner in SCATTER mode', () => {
+      const pinky = new Ghost({
+        type: GhostType.PINKY,
+        maze,
+        spawnPosition: { x: 10, y: 9 },
+      });
+      pinky.setMode(GhostMode.SCATTER);
+      
+      const target = pinky.getTarget(pacman);
+      expect(target).toEqual(pinky.getScatterTarget());
+    });
+  });
+
+  describe('Inky targeting (complex flanking)', () => {
+    it('should use Blinky position for targeting in CHASE mode', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 5, y: 5 },
+      });
+      
+      const inky = new Ghost({
+        type: GhostType.INKY,
+        maze,
+        spawnPosition: { x: 9, y: 10 },
+        blinkyRef: blinky,
+      });
+      inky.setMode(GhostMode.CHASE);
+      
+      // Move Pac-Man right
+      pacman.move(Direction.RIGHT);
+      
+      const target = inky.getTarget(pacman);
+      
+      // Calculate expected target:
+      // 1. Get position 2 tiles ahead of Pac-Man
+      const pivotPoint = pacman.getPositionAhead(2);
+      // 2. Vector from Blinky to pivot point, doubled
+      const blinkyPos = blinky.gridPosition;
+      const expectedTarget = {
+        x: pivotPoint.x + (pivotPoint.x - blinkyPos.x),
+        y: pivotPoint.y + (pivotPoint.y - blinkyPos.y),
+      };
+      
+      expect(target).toEqual(expectedTarget);
+    });
+
+    it('should fall back to direct chase without Blinky reference', () => {
+      const inky = new Ghost({
+        type: GhostType.INKY,
+        maze,
+        spawnPosition: { x: 9, y: 10 },
+        // No blinkyRef
+      });
+      inky.setMode(GhostMode.CHASE);
+      
+      const target = inky.getTarget(pacman);
+      expect(target).toEqual(pacman.gridPosition);
+    });
+
+    it('should allow setting Blinky reference after creation', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 5, y: 5 },
+      });
+      
+      const inky = new Ghost({
+        type: GhostType.INKY,
+        maze,
+        spawnPosition: { x: 9, y: 10 },
+      });
+      
+      // Initially falls back to direct chase
+      inky.setMode(GhostMode.CHASE);
+      expect(inky.getTarget(pacman)).toEqual(pacman.gridPosition);
+      
+      // Set Blinky reference
+      inky.setBlinkyRef(blinky);
+      
+      // Now uses complex targeting
+      pacman.move(Direction.RIGHT);
+      const target = inky.getTarget(pacman);
+      const pivotPoint = pacman.getPositionAhead(2);
+      const blinkyPos = blinky.gridPosition;
+      const expectedTarget = {
+        x: pivotPoint.x + (pivotPoint.x - blinkyPos.x),
+        y: pivotPoint.y + (pivotPoint.y - blinkyPos.y),
+      };
+      expect(target).toEqual(expectedTarget);
+    });
+  });
+
+  describe('Clyde targeting (shy behavior)', () => {
+    it('should chase directly when far from Pac-Man (>= 8 tiles)', () => {
+      const clyde = new Ghost({
+        type: GhostType.CLYDE,
+        maze,
+        spawnPosition: { x: 1, y: 1 }, // Far from Pac-Man at (10, 15)
+      });
+      clyde.setMode(GhostMode.CHASE);
+      
+      const target = clyde.getTarget(pacman);
+      expect(target).toEqual(pacman.gridPosition);
+    });
+
+    it('should retreat to scatter corner when close to Pac-Man (< 8 tiles)', () => {
+      const clyde = new Ghost({
+        type: GhostType.CLYDE,
+        maze,
+        spawnPosition: { x: 10, y: 12 }, // Close to Pac-Man at (10, 15)
+      });
+      clyde.setMode(GhostMode.CHASE);
+      
+      const target = clyde.getTarget(pacman);
+      expect(target).toEqual(clyde.getScatterTarget());
+    });
+
+    it('should switch behavior at exactly 8 tiles distance', () => {
+      // Position Clyde exactly 8 tiles away (Manhattan distance)
+      const clyde = new Ghost({
+        type: GhostType.CLYDE,
+        maze,
+        spawnPosition: { x: 10, y: 7 }, // 8 tiles from (10, 15)
+      });
+      clyde.setMode(GhostMode.CHASE);
+      
+      // At exactly 8 tiles, should chase
+      const target = clyde.getTarget(pacman);
+      expect(target).toEqual(pacman.gridPosition);
+    });
+  });
+
+  describe('scatter targets', () => {
+    it('Blinky should have top-right scatter target', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 9, y: 9 },
+      });
+      const scatterTarget = blinky.getScatterTarget();
+      expect(scatterTarget.x).toBeGreaterThan(10); // Right side
+      expect(scatterTarget.y).toBeLessThan(0); // Top (outside maze)
+    });
+
+    it('Pinky should have top-left scatter target', () => {
+      const pinky = new Ghost({
+        type: GhostType.PINKY,
+        maze,
+        spawnPosition: { x: 10, y: 9 },
+      });
+      const scatterTarget = pinky.getScatterTarget();
+      expect(scatterTarget.x).toBeLessThan(10); // Left side
+      expect(scatterTarget.y).toBeLessThan(0); // Top (outside maze)
+    });
+
+    it('Inky should have bottom-right scatter target', () => {
+      const inky = new Ghost({
+        type: GhostType.INKY,
+        maze,
+        spawnPosition: { x: 9, y: 10 },
+      });
+      const scatterTarget = inky.getScatterTarget();
+      expect(scatterTarget.x).toBeGreaterThan(10); // Right side
+      expect(scatterTarget.y).toBeGreaterThan(10); // Bottom
+    });
+
+    it('Clyde should have bottom-left scatter target', () => {
+      const clyde = new Ghost({
+        type: GhostType.CLYDE,
+        maze,
+        spawnPosition: { x: 10, y: 10 },
+      });
+      const scatterTarget = clyde.getScatterTarget();
+      expect(scatterTarget.x).toBeLessThan(10); // Left side
+      expect(scatterTarget.y).toBeGreaterThan(10); // Bottom
+    });
+  });
+
+  describe('targeting with null pacman', () => {
+    it('should return scatter target when pacman is null', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 9, y: 9 },
+      });
+      blinky.setMode(GhostMode.CHASE);
+      
+      const target = blinky.getTarget(null);
+      expect(target).toEqual(blinky.getScatterTarget());
+    });
+  });
+
+  describe('EATEN mode targeting', () => {
+    it('should target ghost house center when eaten', () => {
+      const blinky = new Ghost({
+        type: GhostType.BLINKY,
+        maze,
+        spawnPosition: { x: 9, y: 9 },
+      });
+      blinky.setMode(GhostMode.SCATTER);
+      blinky.enterFrightenedMode(5000);
+      blinky.onEaten();
+      
+      const target = blinky.getTarget(pacman);
+      expect(target).toEqual(maze.ghostHouseCenter);
+    });
+  });
+});

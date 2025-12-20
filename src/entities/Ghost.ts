@@ -55,7 +55,13 @@ export interface GhostConfig {
   spawnPosition: GridPosition;
   speed?: number;
   ctx?: CanvasRenderingContext2D;
+  blinkyRef?: Ghost; // Reference to Blinky for Inky's targeting
 }
+
+/**
+ * Clyde's shy distance threshold - switches to scatter when closer than this
+ */
+const CLYDE_SHY_DISTANCE = 8;
 
 /**
  * Ghost entity with state machine for different behavior modes
@@ -71,6 +77,7 @@ export class Ghost implements IEntity {
   private readonly maze: Maze;
   private readonly spawnPosition: GridPosition;
   private ctx: CanvasRenderingContext2D | null = null;
+  private blinkyRef: Ghost | null = null; // Reference to Blinky for Inky's targeting
   
   // Movement state
   private isMoving: boolean = false;
@@ -91,6 +98,7 @@ export class Ghost implements IEntity {
     this.spawnPosition = { ...config.spawnPosition };
     this._speed = config.speed ?? 75;
     this.ctx = config.ctx ?? null;
+    this.blinkyRef = config.blinkyRef ?? null;
     
     this._gridPosition = { ...this.spawnPosition };
     this._pixelPosition = gridToPixel(this._gridPosition);
@@ -451,15 +459,94 @@ export class Ghost implements IEntity {
 
   /**
    * Gets chase target based on ghost personality
-   * This is a placeholder - actual targeting will be implemented in task 6.2
+   * Each ghost has a unique targeting strategy:
+   * - Blinky: Direct chase (target = Pac-Man position)
+   * - Pinky: Ambush (target = 4 tiles ahead of Pac-Man)
+   * - Inky: Complex (uses Blinky position + Pac-Man)
+   * - Clyde: Shy (chase when far, scatter when close)
    */
   private getChaseTarget(pacman: PacMan | null): GridPosition {
     if (!pacman) {
       return SCATTER_TARGETS[this.type];
     }
     
-    // Default: direct chase (Blinky behavior)
+    switch (this.type) {
+      case GhostType.BLINKY:
+        return this.getBlinkyTarget(pacman);
+      case GhostType.PINKY:
+        return this.getPinkyTarget(pacman);
+      case GhostType.INKY:
+        return this.getInkyTarget(pacman);
+      case GhostType.CLYDE:
+        return this.getClydeTarget(pacman);
+      default:
+        return pacman.gridPosition;
+    }
+  }
+
+  /**
+   * Blinky's targeting: Direct chase
+   * Target is Pac-Man's current position
+   */
+  private getBlinkyTarget(pacman: PacMan): GridPosition {
     return pacman.gridPosition;
+  }
+
+  /**
+   * Pinky's targeting: Ambush
+   * Target is 4 tiles ahead of Pac-Man's current direction
+   * Note: Original game had a bug where UP direction also shifted left by 4 tiles
+   * We implement the corrected version here
+   */
+  private getPinkyTarget(pacman: PacMan): GridPosition {
+    const tilesAhead = 4;
+    return pacman.getPositionAhead(tilesAhead);
+  }
+
+  /**
+   * Inky's targeting: Complex flanking maneuver
+   * 1. Get position 2 tiles ahead of Pac-Man
+   * 2. Draw vector from Blinky to that position
+   * 3. Double the vector to get target
+   * This creates a pincer movement with Blinky
+   */
+  private getInkyTarget(pacman: PacMan): GridPosition {
+    // Get position 2 tiles ahead of Pac-Man
+    const pivotPoint = pacman.getPositionAhead(2);
+    
+    // If no Blinky reference, fall back to direct chase
+    if (!this.blinkyRef) {
+      return pacman.gridPosition;
+    }
+    
+    const blinkyPos = this.blinkyRef.gridPosition;
+    
+    // Calculate vector from Blinky to pivot point and double it
+    const vectorX = pivotPoint.x - blinkyPos.x;
+    const vectorY = pivotPoint.y - blinkyPos.y;
+    
+    return {
+      x: pivotPoint.x + vectorX,
+      y: pivotPoint.y + vectorY,
+    };
+  }
+
+  /**
+   * Clyde's targeting: Shy behavior
+   * When far from Pac-Man (>= 8 tiles): Chase like Blinky
+   * When close to Pac-Man (< 8 tiles): Retreat to scatter corner
+   */
+  private getClydeTarget(pacman: PacMan): GridPosition {
+    const pacmanPos = pacman.gridPosition;
+    const distance = manhattanDistance(this._gridPosition, pacmanPos);
+    
+    if (distance >= CLYDE_SHY_DISTANCE) {
+      // Far away: chase directly like Blinky
+      return pacmanPos;
+    } else {
+      // Close: retreat to scatter corner
+      return SCATTER_TARGETS[GhostType.CLYDE];
+    }
   }
 
   private chooseDirectionTowardsTarget(directions: Direction[], target: GridPosition): Direction {
@@ -671,5 +758,19 @@ export class Ghost implements IEntity {
    */
   setReleaseDelay(delay: number): void {
     this.releaseDelay = delay;
+  }
+
+  /**
+   * Sets the reference to Blinky (needed for Inky's targeting)
+   */
+  setBlinkyRef(blinky: Ghost): void {
+    this.blinkyRef = blinky;
+  }
+
+  /**
+   * Gets the scatter target for this ghost type (for testing)
+   */
+  getScatterTarget(): GridPosition {
+    return { ...SCATTER_TARGETS[this.type] };
   }
 }
