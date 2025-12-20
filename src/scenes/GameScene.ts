@@ -1,14 +1,15 @@
 import Phaser from 'phaser';
-import { GameState, GhostType, GhostMode, CellType, Direction } from '../types';
+import { GameState, GhostType, CellType } from '../types';
 import type { GridPosition } from '../types';
 import { Maze } from '../maze';
 import { PacMan } from '../entities/PacMan';
 import { Ghost } from '../entities/Ghost';
-import { ScoreManager } from '../game/ScoreManager';
+import { ScoreManager, PELLET_POINTS, POWER_PELLET_POINTS } from '../game/ScoreManager';
 import { LivesManager } from '../game/LivesManager';
 import { LevelManager } from '../game/LevelManager';
 import { InputManager } from '../input/InputManager';
 import { CELL_SIZE } from '../maze/maze-utils';
+import { ScoreDisplay, LivesDisplay, LevelIndicator, FrightenedTimer } from '../ui';
 
 /**
  * GameScene is the main gameplay scene handling:
@@ -35,10 +36,10 @@ export class GameScene extends Phaser.Scene {
   private gameCtx!: CanvasRenderingContext2D;
 
   // UI elements
-  private scoreText!: Phaser.GameObjects.Text;
-  private highscoreText!: Phaser.GameObjects.Text;
-  private livesContainer!: Phaser.GameObjects.Container;
-  private levelText!: Phaser.GameObjects.Text;
+  private scoreDisplay!: ScoreDisplay;
+  private livesDisplay!: LivesDisplay;
+  private levelIndicator!: LevelIndicator;
+  private frightenedTimer!: FrightenedTimer;
   private readyText!: Phaser.GameObjects.Text;
 
   // Timing
@@ -171,46 +172,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createUI(): void {
-    const { width } = this.cameras.main;
+    const { width, height } = this.cameras.main;
 
-    // Score display
-    this.add.text(10, 10, 'SCORE', {
-      fontFamily: 'Arial',
-      fontSize: '12px',
-      color: '#FFFFFF',
-    });
-    this.scoreText = this.add.text(10, 25, '0', {
-      fontFamily: 'Courier New',
-      fontSize: '20px',
-      color: '#FFFF00',
-    });
+    // Score display (top left and right)
+    this.scoreDisplay = new ScoreDisplay(this);
+    this.scoreDisplay.updateHighscore(this.scoreManager.highscore);
 
-    // Highscore display
-    this.add.text(width - 100, 10, 'HIGH', {
-      fontFamily: 'Arial',
-      fontSize: '12px',
-      color: '#FFFFFF',
-    });
-    this.highscoreText = this.add.text(width - 100, 25, this.scoreManager.highscore.toString(), {
-      fontFamily: 'Courier New',
-      fontSize: '20px',
-      color: '#00FFFF',
-    });
+    // Level indicator (top center)
+    this.levelIndicator = new LevelIndicator(this, width / 2, 8);
+    this.levelIndicator.updateLevel(this.levelManager.getLevel());
 
-    // Level display
-    this.levelText = this.add.text(width / 2, 10, `LEVEL ${this.levelManager.getLevel()}`, {
-      fontFamily: 'Arial',
-      fontSize: '14px',
-      color: '#00FF00',
-    });
-    this.levelText.setOrigin(0.5, 0);
+    // Lives display (bottom left)
+    this.livesDisplay = new LivesDisplay(this, 10, height - 25);
+    this.livesDisplay.updateLives(this.livesManager.lives);
 
-    // Lives display
-    this.livesContainer = this.add.container(10, this.cameras.main.height - 30);
-    this.updateLivesDisplay();
+    // Frightened mode timer (top center, below level)
+    this.frightenedTimer = new FrightenedTimer(this, width / 2, 50);
 
     // Ready text (hidden initially)
-    this.readyText = this.add.text(width / 2, this.cameras.main.height / 2, 'READY!', {
+    this.readyText = this.add.text(width / 2, height / 2, 'READY!', {
       fontFamily: 'Arial Black',
       fontSize: '32px',
       color: '#FFFF00',
@@ -280,18 +260,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateLivesDisplay(): void {
-    this.livesContainer.removeAll(true);
-
-    for (let i = 0; i < this.livesManager.lives; i++) {
-      const life = this.add.graphics();
-      life.fillStyle(0xFFFF00, 1);
-      life.beginPath();
-      life.moveTo(i * 25 + 10, 10);
-      life.arc(i * 25 + 10, 10, 8, Math.PI / 6, Math.PI * 2 - Math.PI / 6);
-      life.closePath();
-      life.fillPath();
-      this.livesContainer.add(life);
-    }
+    this.livesDisplay.updateLives(this.livesManager.lives);
   }
 
   private showReadyText(): void {
@@ -314,9 +283,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updatePlaying(delta: number): void {
-    // Update input
-    this.inputManager.update();
-
     // Update Pac-Man
     this.pacman.update(delta);
     this.pacman.updateAnimation(delta);
@@ -338,6 +304,8 @@ export class GameScene extends Phaser.Scene {
 
     // Update UI
     this.updateUI();
+    this.scoreDisplay.update(delta);
+    this.frightenedTimer.update(delta);
   }
 
   private updateDying(delta: number): void {
@@ -372,12 +340,15 @@ export class GameScene extends Phaser.Scene {
 
     if (this.maze.hasPellet(pacmanPos)) {
       const pelletType = this.maze.collectPellet(pacmanPos);
+      const pixelPos = this.pacman.pixelPosition;
 
       if (pelletType === CellType.POWER_PELLET) {
         this.scoreManager.collectPowerPellet();
+        this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, POWER_PELLET_POINTS);
         this.activateFrightenedMode();
       } else if (pelletType === CellType.PELLET) {
         this.scoreManager.collectPellet();
+        this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, PELLET_POINTS);
       }
     }
   }
@@ -387,6 +358,7 @@ export class GameScene extends Phaser.Scene {
     this.ghosts.forEach(ghost => {
       ghost.enterFrightenedMode(duration);
     });
+    this.frightenedTimer.start(duration);
   }
 
   private checkGhostCollisions(): void {
@@ -397,7 +369,9 @@ export class GameScene extends Phaser.Scene {
         if (ghost.isFrightened()) {
           // Eat the ghost
           ghost.onEaten();
-          this.scoreManager.eatGhost();
+          const points = this.scoreManager.eatGhost();
+          const pixelPos = ghost.pixelPosition;
+          this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, points);
         } else if (!ghost.isEaten() && !ghost.isInHouse()) {
           // Pac-Man dies
           this.handlePacManDeath();
@@ -415,7 +389,9 @@ export class GameScene extends Phaser.Scene {
     const newState = this.livesManager.handleDeath();
     this.gameState = newState;
     this.dyingTimer = 0;
+    this.livesDisplay.animateLifeLoss();
     this.updateLivesDisplay();
+    this.frightenedTimer.stop();
   }
 
   private resetPositions(): void {
@@ -480,7 +456,7 @@ export class GameScene extends Phaser.Scene {
     this.livesManager.updateSpawnPositions(this.maze.pacmanSpawn, this.maze.ghostSpawns);
 
     // Update UI
-    this.levelText.setText(`LEVEL ${this.levelManager.getLevel()}`);
+    this.levelIndicator.updateLevel(this.levelManager.getLevel());
 
     // Resize canvas if needed
     this.gameCanvas.width = this.maze.pixelWidth;
@@ -493,9 +469,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateUI(): void {
-    this.scoreText.setText(this.scoreManager.score.toString());
+    this.scoreDisplay.updateScore(this.scoreManager.score);
     if (this.scoreManager.score > this.scoreManager.highscore) {
-      this.highscoreText.setText(this.scoreManager.score.toString());
+      this.scoreDisplay.updateHighscore(this.scoreManager.score);
     }
   }
 
@@ -652,5 +628,9 @@ export class GameScene extends Phaser.Scene {
   shutdown(): void {
     this.inputManager.destroy();
     this.scoreManager.saveHighscore();
+    this.scoreDisplay.destroy();
+    this.livesDisplay.destroy();
+    this.levelIndicator.destroy();
+    this.frightenedTimer.destroy();
   }
 }
