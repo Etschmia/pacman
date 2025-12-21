@@ -173,16 +173,16 @@ export class PacMan implements IMovable {
   }
 
   /**
-   * Checks if a turn is possible at the current grid position
+   * Checks if a turn is possible at a specific grid position
    */
-  private canTurnAtCurrentPosition(direction: Direction): boolean {
+  private canTurnAtPosition(fromPos: GridPosition, direction: Direction): boolean {
     if (direction === Direction.NONE) {
       return false;
     }
     const vector = DIRECTION_VECTORS[direction];
     const targetPos: GridPosition = {
-      x: this._gridPosition.x + vector.x,
-      y: this._gridPosition.y + vector.y,
+      x: fromPos.x + vector.x,
+      y: fromPos.y + vector.y,
     };
     return this.maze.isWalkable(targetPos);
   }
@@ -206,10 +206,10 @@ export class PacMan implements IMovable {
    * Updates PacMan position based on delta time
    */
   update(delta: number): void {
-    // Try to apply buffered direction at cell center
+    // Try to apply buffered direction at cell center (current position)
     if (this._nextDirection !== Direction.NONE && this._nextDirection !== this._direction) {
       // Check if we can turn now (near cell center or reversing)
-      if (this.canTurnImmediately(this._nextDirection) && this.canTurnAtCurrentPosition(this._nextDirection)) {
+      if (this.canTurnImmediately(this._nextDirection) && this.canTurnAtPosition(this._gridPosition, this._nextDirection)) {
         // Snap to grid position for clean turn
         if (this.moveProgress < 0.5) {
           this._pixelPosition = gridToPixel(this._gridPosition);
@@ -244,6 +244,19 @@ export class PacMan implements IMovable {
     const moveAmount = (this._speed * delta) / 1000 / CELL_SIZE;
     this.moveProgress += moveAmount;
 
+    // Check if we're approaching target cell and can turn there
+    // This allows pre-turning: if player pressed a direction and we're close to a cell where it's possible
+    if (this.isMoving && this._nextDirection !== Direction.NONE && 
+        this._nextDirection !== this._direction &&
+        this._nextDirection !== OPPOSITE_DIRECTION[this._direction]) {
+      // Check if the turn is possible at the target cell
+      if (this.moveProgress >= 0.5 && this.canTurnAtPosition(this.targetGridPosition, this._nextDirection)) {
+        // We're past the midpoint and can turn at target - complete movement early and turn
+        this.completeMovementAndTurn();
+        return;
+      }
+    }
+
     // Check if reached target cell
     if (this.moveProgress >= 1) {
       this.completeMovement();
@@ -251,6 +264,25 @@ export class PacMan implements IMovable {
       // Interpolate pixel position
       this.updatePixelPosition();
     }
+  }
+
+  /**
+   * Completes movement and immediately turns in the buffered direction
+   */
+  private completeMovementAndTurn(): void {
+    this._gridPosition = { ...this.targetGridPosition };
+    this._pixelPosition = gridToPixel(this._gridPosition);
+    this.moveProgress = 0;
+    this.isMoving = false;
+
+    // Handle tunnel teleportation
+    if (this.maze.isTunnel(this._gridPosition)) {
+      this.handleTunnelTeleport();
+    }
+
+    // Apply the buffered direction
+    this._direction = this._nextDirection;
+    this.startMovement();
   }
 
   /**
@@ -281,7 +313,9 @@ export class PacMan implements IMovable {
     }
 
     // First priority: try buffered direction (allows turning at intersections)
-    if (this._nextDirection !== Direction.NONE && this._nextDirection !== this._direction && this.canMove(this._nextDirection)) {
+    if (this._nextDirection !== Direction.NONE && 
+        this._nextDirection !== this._direction && 
+        this.canTurnAtPosition(this._gridPosition, this._nextDirection)) {
       this._direction = this._nextDirection;
       this.startMovement();
     }
@@ -290,7 +324,7 @@ export class PacMan implements IMovable {
       this.startMovement();
     }
     // Third priority: try buffered direction even if same (in case we were blocked)
-    else if (this._nextDirection !== Direction.NONE && this.canMove(this._nextDirection)) {
+    else if (this._nextDirection !== Direction.NONE && this.canTurnAtPosition(this._gridPosition, this._nextDirection)) {
       this._direction = this._nextDirection;
       this.startMovement();
     }

@@ -91,6 +91,7 @@ export class Ghost implements IEntity {
   // House release
   private houseReleaseTimer: number = 0;
   private releaseDelay: number = 0;
+  private isExitingHouse: boolean = false; // Track if ghost is leaving the house
 
   constructor(config: GhostConfig) {
     this.type = config.type;
@@ -235,7 +236,7 @@ export class Ghost implements IEntity {
     // Ghosts can walk through ghost house door when leaving or eaten
     const cell = this.maze.getCell(targetPos);
     if (cell === CellType.GHOST_DOOR) {
-      return this._mode === GhostMode.HOUSE || this._mode === GhostMode.EATEN;
+      return this._mode === GhostMode.HOUSE || this._mode === GhostMode.EATEN || this.isExitingHouse;
     }
 
     return this.maze.isWalkable(targetPos);
@@ -267,14 +268,29 @@ export class Ghost implements IEntity {
       this.houseReleaseTimer += delta;
       if (this.houseReleaseTimer >= this.releaseDelay) {
         this._mode = GhostMode.SCATTER;
-        this._direction = Direction.UP; // Exit upward
+        this.isExitingHouse = true; // Mark as exiting so we can pass through door
+      } else {
+        return; // Stay in house
       }
-      return;
+    }
+
+    // Check if we've exited the house (no longer on ghost house or door cells)
+    if (this.isExitingHouse) {
+      const currentCell = this.maze.getCell(this._gridPosition);
+      if (currentCell !== CellType.GHOST_DOOR && 
+          currentCell !== CellType.GHOST_HOUSE && 
+          !this.isInGhostHouseArea()) {
+        this.isExitingHouse = false;
+      }
     }
 
     // If no direction, choose one
     if (this._direction === Direction.NONE) {
-      this.chooseDirection(null);
+      if (this.isExitingHouse) {
+        this.chooseExitDirection();
+      } else {
+        this.chooseDirection(null);
+      }
     }
 
     // Start new movement if at cell center
@@ -282,7 +298,11 @@ export class Ghost implements IEntity {
       if (this.canMove(this._direction)) {
         this.startMovement();
       } else {
-        this.chooseDirection(null);
+        if (this.isExitingHouse) {
+          this.chooseExitDirection();
+        } else {
+          this.chooseDirection(null);
+        }
         if (this.canMove(this._direction)) {
           this.startMovement();
         }
@@ -301,6 +321,92 @@ export class Ghost implements IEntity {
     } else {
       this.updatePixelPosition();
     }
+  }
+
+  /**
+   * Chooses direction to exit the ghost house
+   * Navigates towards the ghost door, then up through it
+   */
+  private chooseExitDirection(): void {
+    const doorPosition = this.findGhostDoorPosition();
+    if (!doorPosition) {
+      // Fallback: just go up
+      this._direction = Direction.UP;
+      return;
+    }
+
+    // If we're at or above the door, go up
+    if (this._gridPosition.y <= doorPosition.y) {
+      if (this.canMove(Direction.UP)) {
+        this._direction = Direction.UP;
+        return;
+      }
+    }
+
+    // Navigate horizontally to align with door first
+    if (this._gridPosition.x < doorPosition.x) {
+      if (this.canMove(Direction.RIGHT)) {
+        this._direction = Direction.RIGHT;
+        return;
+      }
+    } else if (this._gridPosition.x > doorPosition.x) {
+      if (this.canMove(Direction.LEFT)) {
+        this._direction = Direction.LEFT;
+        return;
+      }
+    }
+
+    // If aligned horizontally, go up
+    if (this.canMove(Direction.UP)) {
+      this._direction = Direction.UP;
+      return;
+    }
+
+    // Fallback: try any available direction towards the door
+    const directions = [Direction.UP, Direction.LEFT, Direction.RIGHT, Direction.DOWN];
+    for (const dir of directions) {
+      if (this.canMove(dir)) {
+        this._direction = dir;
+        return;
+      }
+    }
+  }
+
+  /**
+   * Finds the position of the ghost door (or center of it)
+   */
+  private findGhostDoorPosition(): GridPosition | null {
+    // The ghost house center is typically below the door
+    // The door is usually 1-2 rows above the ghost house center
+    const houseCenter = this.maze.ghostHouseCenter;
+    
+    // Search for the ghost door above the house center
+    for (let y = houseCenter.y - 3; y <= houseCenter.y; y++) {
+      for (let x = houseCenter.x - 2; x <= houseCenter.x + 2; x++) {
+        const cell = this.maze.getCell({ x, y });
+        if (cell === CellType.GHOST_DOOR) {
+          return { x, y };
+        }
+      }
+    }
+    
+    // Fallback: return position above house center
+    return { x: houseCenter.x, y: houseCenter.y - 2 };
+  }
+
+  /**
+   * Checks if ghost is in the ghost house area
+   */
+  private isInGhostHouseArea(): boolean {
+    const currentCell = this.maze.getCell(this._gridPosition);
+    if (currentCell === CellType.GHOST_HOUSE) {
+      return true;
+    }
+    
+    const houseCenter = this.maze.ghostHouseCenter;
+    // Ghost house is typically a small area around the center
+    return Math.abs(this._gridPosition.x - houseCenter.x) <= 2 &&
+           Math.abs(this._gridPosition.y - houseCenter.y) <= 1;
   }
 
   private updateModeTimers(delta: number): void {
@@ -360,7 +466,11 @@ export class Ghost implements IEntity {
     }
 
     // Choose next direction at intersection
-    this.chooseDirection(null);
+    if (this.isExitingHouse) {
+      this.chooseExitDirection();
+    } else {
+      this.chooseDirection(null);
+    }
 
     // Continue moving
     if (this.canMove(this._direction)) {
@@ -400,6 +510,7 @@ export class Ghost implements IEntity {
     this.isMoving = false;
     this.houseReleaseTimer = 0;
     this.releaseDelay = 1000; // Quick release after respawn
+    this.isExitingHouse = false;
   }
 
   // === Targeting ===
@@ -709,6 +820,7 @@ export class Ghost implements IEntity {
     this.frightenedBlinking = false;
     this.houseReleaseTimer = 0;
     this.releaseDelay = this.getInitialReleaseDelay();
+    this.isExitingHouse = false;
   }
 
   /**
