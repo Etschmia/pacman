@@ -168,8 +168,23 @@ export class PacMan implements IMovable {
       return true;
     }
     
-    // Can turn at cell center (low move progress)
-    return this.moveProgress < 0.1;
+    // Can turn at cell center (within threshold of center)
+    return this.moveProgress < 0.15;
+  }
+
+  /**
+   * Checks if a turn is possible at the current grid position
+   */
+  private canTurnAtCurrentPosition(direction: Direction): boolean {
+    if (direction === Direction.NONE) {
+      return false;
+    }
+    const vector = DIRECTION_VECTORS[direction];
+    const targetPos: GridPosition = {
+      x: this._gridPosition.x + vector.x,
+      y: this._gridPosition.y + vector.y,
+    };
+    return this.maze.isWalkable(targetPos);
   }
 
   /**
@@ -191,10 +206,17 @@ export class PacMan implements IMovable {
    * Updates PacMan position based on delta time
    */
   update(delta: number): void {
-    // Try to apply buffered direction
+    // Try to apply buffered direction at cell center
     if (this._nextDirection !== Direction.NONE && this._nextDirection !== this._direction) {
-      if (this.canMove(this._nextDirection)) {
-        this.applyDirection(this._nextDirection);
+      // Check if we can turn now (near cell center or reversing)
+      if (this.canTurnImmediately(this._nextDirection) && this.canTurnAtCurrentPosition(this._nextDirection)) {
+        // Snap to grid position for clean turn
+        if (this.moveProgress < 0.5) {
+          this._pixelPosition = gridToPixel(this._gridPosition);
+          this.moveProgress = 0;
+          this.isMoving = false;
+        }
+        this._direction = this._nextDirection;
       }
     }
 
@@ -258,10 +280,17 @@ export class PacMan implements IMovable {
       this.handleTunnelTeleport();
     }
 
-    // Continue moving if possible
-    if (this.canMove(this._direction)) {
+    // First priority: try buffered direction (allows turning at intersections)
+    if (this._nextDirection !== Direction.NONE && this._nextDirection !== this._direction && this.canMove(this._nextDirection)) {
+      this._direction = this._nextDirection;
       this.startMovement();
-    } else if (this._nextDirection !== Direction.NONE && this.canMove(this._nextDirection)) {
+    }
+    // Second priority: continue in current direction
+    else if (this.canMove(this._direction)) {
+      this.startMovement();
+    }
+    // Third priority: try buffered direction even if same (in case we were blocked)
+    else if (this._nextDirection !== Direction.NONE && this.canMove(this._nextDirection)) {
       this._direction = this._nextDirection;
       this.startMovement();
     }
