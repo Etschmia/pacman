@@ -92,6 +92,13 @@ export class Ghost implements IEntity {
   private houseReleaseTimer: number = 0;
   private releaseDelay: number = 0;
   private isExitingHouse: boolean = false; // Track if ghost is leaving the house
+  
+  // Anti-stuck mechanism: track recent positions to detect corner oscillation
+  private recentPositions: string[] = [];
+  private readonly MAX_RECENT_POSITIONS = 8;
+  private readonly STUCK_THRESHOLD = 3; // Number of repeated patterns to trigger anti-stuck
+  private stuckCounter: number = 0;
+  private pacmanRef: PacMan | null = null; // Reference to Pac-Man for anti-stuck targeting
 
   constructor(config: GhostConfig) {
     this.type = config.type;
@@ -519,6 +526,11 @@ export class Ghost implements IEntity {
    * Chooses the next direction based on current mode and target
    */
   chooseDirection(pacman: PacMan | null): void {
+    // Store pacman reference for anti-stuck mechanism
+    if (pacman) {
+      this.pacmanRef = pacman;
+    }
+    
     const availableDirections = this.getAvailableDirections();
     
     if (availableDirections.length === 0) {
@@ -534,6 +546,21 @@ export class Ghost implements IEntity {
       return;
     }
 
+    // Check if stuck in corner oscillation pattern
+    if (this.isStuckInCorner() && this._mode !== GhostMode.FRIGHTENED) {
+      this.stuckCounter++;
+      
+      if (this.stuckCounter >= this.STUCK_THRESHOLD) {
+        // Force direction towards Pac-Man or random if no Pac-Man reference
+        this._direction = this.chooseAntiStuckDirection(availableDirections, pacman);
+        this.stuckCounter = 0;
+        this.recentPositions = []; // Reset position history
+        return;
+      }
+    } else {
+      this.stuckCounter = 0;
+    }
+
     // Get target based on mode
     const target = this.getTarget(pacman);
     
@@ -545,6 +572,54 @@ export class Ghost implements IEntity {
     } else {
       this._direction = this.chooseDirectionTowardsTarget(availableDirections, target);
     }
+  }
+
+  /**
+   * Tracks position history and detects if ghost is stuck oscillating in a corner
+   */
+  private isStuckInCorner(): boolean {
+    const posKey = `${this._gridPosition.x},${this._gridPosition.y}`;
+    this.recentPositions.push(posKey);
+    
+    // Keep only recent positions
+    if (this.recentPositions.length > this.MAX_RECENT_POSITIONS) {
+      this.recentPositions.shift();
+    }
+    
+    // Need enough history to detect pattern
+    if (this.recentPositions.length < 4) {
+      return false;
+    }
+    
+    // Count how many times current position appears in recent history
+    const currentPosCount = this.recentPositions.filter(p => p === posKey).length;
+    
+    // If we've been at this position 3+ times recently, we're likely stuck
+    return currentPosCount >= 3;
+  }
+
+  /**
+   * Chooses a direction to break out of corner oscillation
+   * Prefers direction towards Pac-Man, otherwise picks a different direction
+   */
+  private chooseAntiStuckDirection(directions: Direction[], pacman: PacMan | null): Direction {
+    const targetPacman = pacman || this.pacmanRef;
+    
+    if (targetPacman) {
+      // Choose direction that moves towards Pac-Man
+      return this.chooseDirectionTowardsTarget(directions, targetPacman.gridPosition);
+    }
+    
+    // No Pac-Man reference - pick a random direction different from current
+    const otherDirections = directions.filter(d => d !== this._direction);
+    if (otherDirections.length > 0) {
+      const randomIndex = Math.floor(Math.random() * otherDirections.length);
+      return otherDirections[randomIndex];
+    }
+    
+    // Fallback to any available direction
+    const randomIndex = Math.floor(Math.random() * directions.length);
+    return directions[randomIndex];
   }
 
   /**
@@ -821,6 +896,8 @@ export class Ghost implements IEntity {
     this.houseReleaseTimer = 0;
     this.releaseDelay = this.getInitialReleaseDelay();
     this.isExitingHouse = false;
+    this.recentPositions = [];
+    this.stuckCounter = 0;
   }
 
   /**
