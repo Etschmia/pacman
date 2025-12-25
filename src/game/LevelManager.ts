@@ -37,9 +37,12 @@ export class LevelManager {
   private onLevelChange: LevelChangeCallback | null = null;
   private onGameStateChange: GameStateChangeCallback | null = null;
   private onLevelComplete: LevelCompleteCallback | null = null;
+  private layoutOffset: number; // Random offset for layout selection per game session
 
   constructor(startLevel: number = 1) {
     this.currentLevel = Math.max(MIN_LEVEL, Math.min(MAX_LEVEL, startLevel));
+    // Random offset ensures different starting layout each new game
+    this.layoutOffset = Math.floor(Math.random() * 5);
   }
 
   /**
@@ -140,10 +143,14 @@ export class LevelManager {
 
   /**
    * Gets a maze layout for the current level
-   * Uses different layouts for variety
+   * Uses random offset + level to select from pool of 5 layouts
+   * This ensures different starting layouts each new game while maintaining
+   * variety across levels
    */
   getMazeLayoutForCurrentLevel(): MazeLayout {
-    return getMazeLayout(this.currentLevel - 1);
+    // Combine random offset with level to get varied layouts per game session
+    const layoutIndex = (this.layoutOffset + this.currentLevel - 1) % 5;
+    return getMazeLayout(layoutIndex);
   }
 
   /**
@@ -234,10 +241,12 @@ export class LevelManager {
   }
 
   /**
-   * Resets to level 1
+   * Resets to level 1 with a new random layout offset
    */
   reset(): void {
     this.currentLevel = MIN_LEVEL;
+    // New random offset for new game session
+    this.layoutOffset = Math.floor(Math.random() * 5);
     const config = this.getCurrentConfig();
     this.onLevelChange?.(this.currentLevel, config);
   }
