@@ -1,4 +1,4 @@
-import { CellType, Direction } from './enums';
+import { CellType, Direction, FruitType } from './enums';
 
 // Position im Grid
 export interface GridPosition {
@@ -81,4 +81,12 @@ export interface IMovable extends IEntity {
   nextDirection: Direction;
   canMove(direction: Direction): boolean;
   move(direction: Direction): void;
+}
+
+// Frucht-Konfiguration
+export interface FruitConfig {
+  type: FruitType;
+  gridPosition: GridPosition;
+  lifetime?: number; // Millisekunden bis zum Verschwinden
+  ctx?: CanvasRenderingContext2D;
 }

@@ -27,6 +27,7 @@ npm run test:coverage # Generate coverage report
 **Entity System:**
 - `PacMan` - Grid-based movement with smooth pixel interpolation
 - `Ghost` - State machine AI with 4 modes: Chase, Scatter, Frightened, Eaten
+- `Fruit` - Bonus collectibles that spawn randomly and disappear after timeout
 
 **Ghost AI Personalities:**
 - Blinky (Red): Direct pursuit
@@ -35,12 +36,18 @@ npm run test:coverage # Generate coverage report
 - Clyde (Orange): Shy behavior, switches between hunt/flee based on distance
 
 **Manager Singletons:**
-- `ScoreManager` - Points, ghost chains (200→400→800→1600), highscore persistence
+- `ScoreManager` - Points, ghost chains (200→400→800→1600), fruit bonuses, highscore persistence
 - `LivesManager` - Life tracking
 - `LevelManager` - 8 levels with progressive difficulty
+- `FruitManager` - Spawns 2-7 random fruits per level with timeout
 - `InputManager` - Keyboard (arrows/WASD) + touch (swipe)
 - `AudioManager` - Web Audio API sound generation
 - `ResponsiveManager` - Device scaling (0.5x-2.0x)
+
+**Fruit System:**
+- 7 fruit types: Cherry (50), Raspberry (100), Peach (150), Apple (200), Banana (250), Grapes (350), Melon (450)
+- 2-7 fruits spawn randomly per level at 15-30 second intervals
+- Each fruit has 8-12 second lifetime with blink animation before disappearing
 
 ### Maze System
 
@@ -71,5 +78,5 @@ npx vitest run src/path/to/file.test.ts
 ## Type System
 
 Strict TypeScript with key types in `src/types/`:
-- `Direction`, `GhostMode`, `GhostType`, `GameState`, `CellType` (enums)
-- `GridPosition`, `PixelPosition`, `LevelConfig`, `MazeData` (interfaces)
+- `Direction`, `GhostMode`, `GhostType`, `GameState`, `CellType`, `FruitType` (enums)
+- `GridPosition`, `PixelPosition`, `LevelConfig`, `MazeData`, `FruitConfig` (interfaces)

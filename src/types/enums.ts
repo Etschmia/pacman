@@ -46,3 +46,14 @@ export enum CellType {
   TUNNEL = 6,
   EMPTY = 7,
 }
+
+// Frucht-Typen mit unterschiedlichen Punktwerten
+export enum FruitType {
+  CHERRY = 'cherry',       // 50 Punkte
+  RASPBERRY = 'raspberry', // 100 Punkte
+  PEACH = 'peach',         // 150 Punkte
+  APPLE = 'apple',         // 200 Punkte
+  BANANA = 'banana',       // 250 Punkte
+  GRAPES = 'grapes',       // 350 Punkte
+  MELON = 'melon',         // 450 Punkte
+}

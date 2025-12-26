@@ -1,6 +1,8 @@
 import { loadHighscoreData, saveHighscoreData } from '../persistence/storage';
 import { updateHighscore } from '../persistence/serialization';
 import type { HighscoreData } from '../types';
+import { FruitType } from '../types/enums';
+import { FRUIT_POINTS } from '../entities/Fruit';
 
 // Point values
 export const PELLET_POINTS = 10;
@@ -81,6 +83,18 @@ export class ScoreManager {
    */
   resetGhostChain(): void {
     this._ghostChainIndex = 0;
+  }
+
+  /**
+   * Adds points for collecting a fruit
+   * @param fruitType The type of fruit collected
+   * @returns Points added
+   */
+  collectFruit(fruitType: FruitType): number {
+    const points = FRUIT_POINTS[fruitType];
+    this._score += points;
+    this.checkHighscore();
+    return points;
   }
 
   /**

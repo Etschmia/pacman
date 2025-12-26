@@ -7,6 +7,7 @@ import { Ghost } from '../entities/Ghost';
 import { ScoreManager, PELLET_POINTS, POWER_PELLET_POINTS } from '../game/ScoreManager';
 import { LivesManager } from '../game/LivesManager';
 import { LevelManager } from '../game/LevelManager';
+import { FruitManager } from '../game/FruitManager';
 import { InputManager } from '../input/InputManager';
 import { CELL_SIZE } from '../maze/maze-utils';
 import { ScoreDisplay, LivesDisplay, LevelIndicator, FrightenedTimer } from '../ui';
@@ -26,6 +27,7 @@ export class GameScene extends Phaser.Scene {
   private livesManager!: LivesManager;
   private levelManager!: LevelManager;
   private inputManager!: InputManager;
+  private fruitManager!: FruitManager;
 
   // Game state
   private gameState: GameState = GameState.READY;
@@ -196,6 +198,9 @@ export class GameScene extends Phaser.Scene {
     if (blinky && inky) {
       inky.setBlinkyRef(blinky);
     }
+
+    // Create FruitManager
+    this.fruitManager = new FruitManager(this.maze);
   }
 
 
@@ -209,6 +214,7 @@ export class GameScene extends Phaser.Scene {
     // Set render contexts for entities
     this.pacman.setRenderContext(this.gameCtx);
     this.ghosts.forEach(ghost => ghost.setRenderContext(this.gameCtx));
+    this.fruitManager.setRenderContext(this.gameCtx);
   }
 
   private createUI(): void {
@@ -325,6 +331,8 @@ export class GameScene extends Phaser.Scene {
     if (this.readyTimer >= this.READY_DURATION) {
       this.gameState = GameState.PLAYING;
       this.hideReadyText();
+      // Start fruit spawning for this level
+      this.fruitManager.startLevel();
     }
   }
 
@@ -339,8 +347,14 @@ export class GameScene extends Phaser.Scene {
       ghost.chooseDirection(this.pacman);
     });
 
+    // Update fruits (with excluded positions for spawning)
+    this.updateFruits(delta);
+
     // Check pellet collection
     this.checkPelletCollection();
+
+    // Check fruit collection
+    this.checkFruitCollection();
 
     // Check ghost collisions
     this.checkGhostCollisions();
@@ -352,6 +366,28 @@ export class GameScene extends Phaser.Scene {
     this.updateUI();
     this.scoreDisplay.update(delta);
     this.frightenedTimer.update(delta);
+  }
+
+  private updateFruits(delta: number): void {
+    // Set excluded positions (don't spawn fruits where PacMan or ghosts are)
+    const excludedPositions: GridPosition[] = [
+      this.pacman.gridPosition,
+      ...this.ghosts.map(g => g.gridPosition),
+    ];
+    this.fruitManager.setExcludedPositions(excludedPositions);
+    this.fruitManager.update(delta);
+  }
+
+  private checkFruitCollection(): void {
+    const pacmanPos = this.pacman.gridPosition;
+    const fruit = this.fruitManager.collectFruitAt(pacmanPos);
+
+    if (fruit) {
+      const points = this.scoreManager.collectFruit(fruit.type);
+      const pixelPos = this.pacman.pixelPosition;
+      this.scoreDisplay.showPointPopup(pixelPos.x, pixelPos.y, points);
+      getAudioManager().play(SoundType.PELLET); // Use pellet sound for now
+    }
   }
 
   private updateDying(delta: number): void {
@@ -443,6 +479,7 @@ export class GameScene extends Phaser.Scene {
     this.livesDisplay.animateLifeLoss();
     this.updateLivesDisplay();
     this.frightenedTimer.stop();
+    this.fruitManager.stop();
     getAudioManager().play(SoundType.DEATH);
   }
 
@@ -508,6 +545,10 @@ export class GameScene extends Phaser.Scene {
     // Update lives manager spawn positions
     this.livesManager.updateSpawnPositions(this.maze.pacmanSpawn, this.maze.ghostSpawns);
 
+    // Reset FruitManager for new level
+    this.fruitManager.reset(this.maze);
+    this.fruitManager.setRenderContext(this.gameCtx);
+
     // Update UI
     this.levelIndicator.updateLevel(this.levelManager.getLevel());
 
@@ -562,6 +603,9 @@ export class GameScene extends Phaser.Scene {
 
     // Render pellets
     this.renderPellets();
+
+    // Render fruits
+    this.fruitManager.render();
 
     // Render entities (only if not in certain states)
     if (this.gameState !== GameState.DYING || this.dyingTimer < this.DYING_DURATION * 0.7) {
