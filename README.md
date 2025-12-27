@@ -149,6 +149,12 @@ npm run test:coverage
 | 3. Geist fressen | 800 |
 | 4. Geist fressen | 1600 |
 
+### Frucht-System
+
+- **7 Fruchtarten:** Kirsche (50), Himbeere (100), Pfirsich (150), Apfel (200), Banane (250), Weintrauben (350), Melone (450)
+- **Zufälliges Erscheinen:** Pro Level erscheinen zufällig 2-7 Früchte in Abständen von 15-30 Sekunden.
+- **Lebensdauer:** Jede Frucht hat eine Lebensdauer von 8-12 Sekunden und blinkt, bevor sie verschwindet.
+
 ### Level-Progression
 
 | Level | Geister-Geschwindigkeit | Frightened-Dauer |
