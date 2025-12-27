@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { loadHighscoreData, saveHighscoreData } from '../persistence/storage';
 import { updateHighscore } from '../persistence/serialization';
+import { analyticsManager } from '../analytics/AnalyticsManager';
 
 interface GameOverData {
   score: number;
@@ -20,6 +21,11 @@ export class GameOverScene extends Phaser.Scene {
   init(data: GameOverData): void {
     this.score = data.score || 0;
     
+    // Log game over
+    analyticsManager.logEvent('game_over', {
+      score: this.score,
+    });
+
     // Check and update highscore
     const highscoreData = loadHighscoreData();
     if (this.score > highscoreData.highscore) {
@@ -32,6 +38,9 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Log page view
+    analyticsManager.logPageView('game_over');
+
     this.createBackground();
     this.createGameOverText();
     this.createScoreDisplay();
@@ -49,7 +58,7 @@ export class GameOverScene extends Phaser.Scene {
     const graphics = this.add.graphics();
     graphics.fillStyle(0x110000, 1);
     graphics.fillRect(0, 0, width, height);
-
+    
     // Subtle grid
     graphics.lineStyle(1, 0x220000, 0.5);
     for (let x = 0; x < width; x += 16) {
@@ -188,3 +197,4 @@ export class GameOverScene extends Phaser.Scene {
     this.input.off('pointerdown', this.restartGame, this);
   }
 }
+

@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import { BootScene, MenuScene, GameScene, GameOverScene, WinScene } from './scenes';
 import { getResponsiveManager } from './responsive';
+import { analyticsManager } from './analytics/AnalyticsManager';
+
+// Initialize Analytics
+analyticsManager.initialize();
 
 // Base game dimensions (28 cells × 16px, 31 cells × 16px)
 const BASE_WIDTH = 448;

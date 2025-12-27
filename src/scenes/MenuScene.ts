@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { loadHighscoreData } from '../persistence/storage';
+import { analyticsManager } from '../analytics/AnalyticsManager';
 
 /**
  * MenuScene displays the start screen with game title,
@@ -15,6 +16,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Log menu view
+    analyticsManager.logPageView('menu');
+
     // Load highscore
     const data = loadHighscoreData();
     this.highscore = data.highscore;
@@ -182,6 +186,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private startGame(): void {
+    // Log game start
+    analyticsManager.logEvent('start_game');
+
     // Clean up input listeners
     this.input.keyboard?.off('keydown-ENTER', this.startGame, this);
     this.input.keyboard?.off('keydown-SPACE', this.startGame, this);
