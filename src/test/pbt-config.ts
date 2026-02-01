@@ -104,7 +104,7 @@ export const powerPelletCountArb = fc.integer({ min: 0, max: 4 });
 export const highscoreDataArb = fc.record({
   version: fc.constant(1),
   highscore: scoreArb,
-  lastPlayed: fc.date().map((d) => d.toISOString()),
+  lastPlayed: fc.date({ noInvalidDate: true }).map((d) => d.toISOString()),
   settings: fc.record({
     soundEnabled: fc.boolean(),
   }),
